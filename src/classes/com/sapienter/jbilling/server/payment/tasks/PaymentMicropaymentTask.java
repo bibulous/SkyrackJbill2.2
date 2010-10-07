@@ -24,6 +24,8 @@ package com.sapienter.jbilling.server.payment.tasks;
  * PaymentTask for micropayments API.
  * www.micropayments.de
  * 
+ * Sponsored by Tenios GmbH,  http://www.tenios.de
+ * 
  * @author Si Bury
  */
 
@@ -33,6 +35,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.text.DecimalFormat;
 import java.util.Calendar;
 
 import javax.net.SocketFactory;
@@ -160,7 +163,8 @@ public class PaymentMicropaymentTask extends PaymentTaskWithTimeout implements
 	private String project = "projectCode";
 	private String currency = "EUR";
 	private String title = "Fax_usage";
-	private String payText = "Voxtelo_Jbilling_Test_Buchung";
+	//private String payText = "Voxtelo_Jbilling_Test_Buchung";
+	private String payText = "FAXTELO - Rechnungsnummer "; 
 	private String ip = "tenios.de";
 	private Logger log;
 	private int amount = 0;
@@ -210,16 +214,6 @@ public class PaymentMicropaymentTask extends PaymentTaskWithTimeout implements
 			
 			//prepare common data for sending to Gateway
 			validateParameters();
-			//Set the payload data.  Could be a name:value url string for calling
-			//the api, or just set params correctly to call web service.
-			/*
-			 * TODO  here we need to go through the api cycle.
-			 * sessionCreate
-			 * sessionApprove
-			 * sessionGet
-			 * 
-			 * Then set responses below for further processing.
-			 */
 			
 			//Initialize PaymentAuthorizationDTO.
 			PaymentAuthorizationDTO paDto = createPaymentAuthorizationDto();
@@ -415,71 +409,6 @@ EFT
 		return ccType;
 	}
 
-/*	private PaymentAuthorizationDTO processPGRequest(String data) 
-		throws PluggableTaskException {
-
-
-		PaymentAuthorizationDTO dbRow = new PaymentAuthorizationDTO();
-		
-			
-		try {
-
-			//This submits the request to the gateway and processes the response
-			//updating the dB.
-			//TODO  call spi here and use dbRow to store sessionId in transactionId.
-			
-			
-			BufferedReader br = callPG(data);
-			String line = br.readLine();
-			log.debug("PMT.processPGRequest Response line: "+br);
-			while(line!=null) {
-				// check for end of message
-				if(line.equals("endofdata")) {
-					log.debug("ENDOFDATA");
-					break;
-				}
-
-				log.debug("Response line: "+line);
-				// parse and display name/value pair
-				int equalPos=line.indexOf('=');
-				String name=line.substring(0,equalPos);
-				String value=line.substring(equalPos+1);
-				log.debug(name+"="+value);
-				if (name.equals("pg_response_type")) {
-					dbRow.setCode1(value); // code if 1 it is ok
-				}
-				if(name.equals("pg_response_code")) {
-					dbRow.setCode2(value);
-				}
-				
-				if(name.equals("pg_authorization_code")) {
-					dbRow.setApprovalCode(value);
-				}
-				if(name.equals("pg_response_description")) {
-					dbRow.setResponseMessage(value);
-				}
-				if(name.equals("pg_trace_number")) {
-					dbRow.setTransactionId(value);
-				}
-				//preAuth
-				if(name.equals("pg_preauth_result")) {
-					dbRow.setCode3(value);
-				}
-				// get next line
-				line = br.readLine();
-			}
-			br.close();
-		}catch(Exception e) {
-			log.error("PMT.callPG Error processing payment", e);
-		}
-		//Add processor to dB row.
-		dbRow.setProcessor("MicropaymentGateway");
-		
-		
-		return dbRow;
-	}
-*/
-	
 	public boolean preAuth(PaymentDTOEx payment) throws PluggableTaskException {
 		log = Logger.getLogger(PaymentMicropaymentTask.class);
 
@@ -663,10 +592,9 @@ EFT
 	private int sessionCreate(PaymentDTOEx paymentInfo, int method, boolean preAuth,
 			PaymentAuthorizationDTO paDto) {
 		int responseCode = 0;
-		// TODO update states
 		// construct payloadData.
 		this.customerId = paymentInfo.getUserId().toString();
-		//TODO if this is blank then use return sessionId as  transactionId
+		//If this is blank then use return sessionId as  transactionId
 		this.sessionId = paDto.getTransactionId();
 		if (sessionId == null) {
 			this.sessionId = new String(new Integer(paymentInfo.getId()).toString());
@@ -674,9 +602,7 @@ EFT
 		}
 		log.debug("PMT.sessionCreate sessionId = " + sessionId);
 		BigDecimal decimalAmount = paymentInfo.getAmount();
-		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
-		//This ignores trailing amounts to convert BigDecimal amount to api int amount.
-		this.amount = decimalAmount.toBigInteger().intValue();
+		this.amount = getIntAmount(decimalAmount);
 		
 		payloadData = "";
 		payloadData+="action=sessionCreate";
@@ -690,11 +616,11 @@ EFT
 		payloadData+="&currency="+currency;
 		payloadData+="&title="+title;
 		payloadData+="&payText="+payText;
+		//E.G.payloadData+="&payText="+customerId+paymentInfo.getInvoiceIds();
+		//FAXTELO - Rechnungsnummer <Invoicenumber> vom <Invoicedate>
 		payloadData+="&ip="+ip;
 		log.debug("sessionCreate payloadData = "+ payloadData);
 		
-		//TODO need to call PG and set resultValues based on response.
-		//Also need to handle errors.
 		try {
 			//Set url
 			String urlString = "";
@@ -715,7 +641,7 @@ EFT
 				while ((decodedString = in.readLine()) != null) {
 					decodedString = URLDecoder.decode(decodedString, "ISO-8859-1");
 					log.debug("urlDecodedString = " + decodedString);						
-				    //TODO iterate around response params and update classes accordingly.
+				    //Iterate around response params and update classes accordingly.
 					//Do primary path first error=0.
 					/*
 					 * v1.4 response params are
@@ -749,6 +675,16 @@ EFT
 		return responseCode;
 	}
 
+	private int getIntAmount(BigDecimal decimalAmount) {
+		int intAmount = 0;
+		String df = new DecimalFormat("#,##0.00").format(decimalAmount);
+		decimalAmount = new BigDecimal(df);
+		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
+		//This ignores trailing amounts to convert BigDecimal amount to api int amount.
+		intAmount = decimalAmount.toBigInteger().intValue();
+		return intAmount;
+	}
+
 	private int sessionApprove(PaymentDTOEx paymentInfo, int method, boolean preAuth,
 			PaymentAuthorizationDTO paDto) {
 		int responseCode = 0;
@@ -761,8 +697,6 @@ EFT
 		payloadData+="&sessionId="+this.sessionId;
 		log.debug("PMT.sessionApprove payloadData = "+ payloadData);
 		
-		//TODO need to call PG and set resultValues based on response.
-		//Also need to handle errors.
 		try {
 			/*Set url
 			 * TODO remove connection creation to separate method and configure timeout.
@@ -785,9 +719,6 @@ EFT
 				while ((decodedString = in.readLine()) != null) {
 					decodedString = URLDecoder.decode(decodedString, "ISO-8859-1");
 					log.debug("urlDecodedString = " + decodedString);						
-				    //TODO iterate around response params and update classes accordingly.
-					//Do primary path first error=0.
-					//TODO add timeout reading response.
 					/*
 					 * v1.4 response params are
 					 * error, status, expire, errorMessage.
@@ -823,18 +754,14 @@ EFT
 	private PaymentAuthorizationDTO sessionGet(PaymentDTOEx paymentInfo, int method, boolean preAuth,
 			PaymentAuthorizationDTO paDto) {
 		// Not needed PaymentAuthorizationDTO responseDto = paDto;
-		// TODO Auto-generated method stub
 		// construct payloadData.
 		payloadData = "";
 		payloadData+="action=sessionGet";
-		//  TODO may parameterise methods? +ensureGetParameter(PARAMETER_CUSTOMER_CREATE)+"\n";
 		payloadData+="&accessKey="+parameters.get(PARAMETER_ACCESSKEY);
 		payloadData+="&testMode="+parameters.get(PARAMETER_TESTMODE);
 		payloadData+="&sessionId="+sessionId;
 		log.debug("sessionGet payloadData = "+ payloadData);
-		
-		//TODO need to call PG and set resultValues based on response.
-		//Also need to handle errors.
+
 		try {
 			//Set url
 			String urlString = "";
@@ -855,7 +782,7 @@ EFT
 				while ((decodedString = in.readLine()) != null) {
 					decodedString = URLDecoder.decode(decodedString, "ISO-8859-1");
 					log.debug("urlDecodedString = " + decodedString);						
-				    //TODO iterate around response params and update classes accordingly.
+				    //Iterate around response params and update classes accordingly.
 					//Do primary path first error=0.
 					/*
 					 * v1.4 response params are
