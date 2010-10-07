@@ -37,6 +37,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.text.DecimalFormat;
 import java.util.Calendar;
+import java.util.Iterator;
+import java.util.Set;
 
 import javax.net.SocketFactory;
 import javax.net.ssl.HttpsURLConnection;
@@ -45,10 +47,12 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.log4j.Logger;
 
+import com.sapienter.jbilling.server.invoice.db.InvoiceDTO;
 import com.sapienter.jbilling.server.payment.PaymentAuthorizationBL;
 import com.sapienter.jbilling.server.payment.PaymentDTOEx;
 import com.sapienter.jbilling.server.payment.db.PaymentAuthorizationDTO;
 import com.sapienter.jbilling.server.payment.db.PaymentDTO;
+import com.sapienter.jbilling.server.payment.db.PaymentInvoiceMapDTO;
 import com.sapienter.jbilling.server.payment.db.PaymentResultDAS;
 import com.sapienter.jbilling.server.pluggableTask.PaymentTask;
 import com.sapienter.jbilling.server.pluggableTask.PaymentTaskWithTimeout;
@@ -603,6 +607,7 @@ EFT
 		log.debug("PMT.sessionCreate sessionId = " + sessionId);
 		BigDecimal decimalAmount = paymentInfo.getAmount();
 		this.amount = getIntAmount(decimalAmount);
+		this.payText = getInvoiceDescription(paymentInfo);
 		
 		payloadData = "";
 		payloadData+="action=sessionCreate";
@@ -616,8 +621,6 @@ EFT
 		payloadData+="&currency="+currency;
 		payloadData+="&title="+title;
 		payloadData+="&payText="+payText;
-		//E.G.payloadData+="&payText="+customerId+paymentInfo.getInvoiceIds();
-		//FAXTELO - Rechnungsnummer <Invoicenumber> vom <Invoicedate>
 		payloadData+="&ip="+ip;
 		log.debug("sessionCreate payloadData = "+ payloadData);
 		
@@ -674,6 +677,22 @@ EFT
 			}
 		return responseCode;
 	}
+
+	private String getInvoiceDescription(PaymentDTOEx paymentInfo) {
+		String invoiceDescription = "FAXTELO - Rechnungsnummer ";
+		//FAXTELO - Rechnungsnummer <Invoicenumber> vom <Invoicedate>
+		Set<PaymentInvoiceMapDTO> invoicesMap = paymentInfo.getInvoicesMap();
+		Iterator iter = invoicesMap.iterator();
+		while (iter.hasNext()) {
+			PaymentInvoiceMapDTO paymentInvoiceMapDto = (PaymentInvoiceMapDTO)(iter.next());
+			InvoiceDTO invoice = paymentInvoiceMapDto.getInvoiceEntity();
+			invoiceDescription = invoiceDescription + invoice.getNumber() + " vom ";
+			invoiceDescription = invoiceDescription + invoice.getCreateDatetime();
+			//invoiceDescription = invoiceDescription + invoice.getCreateTimestamp();
+			//invoiceDescription = invoiceDescription + invoice.getDueDate();
+		}
+		return invoiceDescription;
+}
 
 	private int getIntAmount(BigDecimal decimalAmount) {
 		int intAmount = 0;
