@@ -33,6 +33,7 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.text.DecimalFormat;
@@ -709,6 +710,23 @@ EFT
 		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
 		//This ignores trailing amounts to convert BigDecimal amount to api int amount.
 		intAmount = decimalAmount.toBigInteger().intValue();
+		return intAmount;
+	}
+	
+	private int getGenericIntAmount(BigDecimal decimalAmount) {
+		int intAmount = 0;
+		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
+
+		int amountLengthPoint = decimalAmount.toString().lastIndexOf(".");
+		int amountLengthComma = decimalAmount.toString().lastIndexOf(",");
+		MathContext mc = null;
+		if (amountLengthPoint > amountLengthComma) {
+			mc = new MathContext(amountLengthPoint);
+		}
+		else {
+			mc = new MathContext(amountLengthComma);
+		}
+		this.amount = decimalAmount.round(mc).intValue();
 		return intAmount;
 	}
 	
