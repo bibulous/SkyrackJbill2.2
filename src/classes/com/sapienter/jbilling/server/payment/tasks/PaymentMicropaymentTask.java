@@ -711,7 +711,7 @@ EFT
 		intAmount = decimalAmount.toBigInteger().intValue();
 		return intAmount;
 	}
-
+	
 	private int sessionApprove(PaymentDTOEx paymentInfo, int method, boolean preAuth,
 			PaymentAuthorizationDTO paDto) {
 		int responseCode = 0;
