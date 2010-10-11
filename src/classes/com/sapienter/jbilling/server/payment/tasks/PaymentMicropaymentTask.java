@@ -38,6 +38,7 @@ import java.net.URLDecoder;
 import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.Locale;
 import java.util.Set;
 
 import javax.net.SocketFactory;
@@ -696,7 +697,14 @@ EFT
 
 	private int getIntAmount(BigDecimal decimalAmount) {
 		int intAmount = 0;
-		String df = new DecimalFormat("#,##0.00").format(decimalAmount);
+		String df = "";
+		Locale locale = Locale.getDefault();
+		if (locale == Locale.GERMANY) {
+			df = new DecimalFormat("#.##0,00").format(decimalAmount);
+		}
+		else {
+			df = new DecimalFormat("#,##0.00").format(decimalAmount);
+		}
 		decimalAmount = new BigDecimal(df);
 		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
 		//This ignores trailing amounts to convert BigDecimal amount to api int amount.
