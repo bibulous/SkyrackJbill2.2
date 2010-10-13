@@ -39,6 +39,7 @@ import java.net.URLDecoder;
 import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -49,8 +50,12 @@ import javax.net.ssl.SSLSocketFactory;
 
 import org.apache.log4j.Logger;
 
+import sun.jdbc.rowset.CachedRowSet;
+
+import com.sapienter.jbilling.server.invoice.InvoiceBL;
 import com.sapienter.jbilling.server.invoice.db.InvoiceDTO;
 import com.sapienter.jbilling.server.payment.PaymentAuthorizationBL;
+import com.sapienter.jbilling.server.payment.PaymentBL;
 import com.sapienter.jbilling.server.payment.PaymentDTOEx;
 import com.sapienter.jbilling.server.payment.db.PaymentAuthorizationDTO;
 import com.sapienter.jbilling.server.payment.db.PaymentDTO;
@@ -608,8 +613,9 @@ EFT
 		}
 		log.debug("PMT.sessionCreate sessionId = " + sessionId);
 		BigDecimal decimalAmount = paymentInfo.getAmount();
-		this.amount = getIntAmount(decimalAmount);
+		this.amount = getGenericIntAmount(decimalAmount);
 		this.payText = getInvoiceDescription(paymentInfo);
+		//this.payText = getInvoiceDescription(paymentInfo, paDto);
 		
 		payloadData = "";
 		payloadData+="action=sessionCreate";
@@ -681,18 +687,21 @@ EFT
 	}
 
 	private String getInvoiceDescription(PaymentDTOEx paymentInfo) {
-		String invoiceDescription = "FAXTELO - Rechnungsnummer ";
-		//FAXTELO - Rechnungsnummer <Invoicenumber> vom <Invoicedate>
-		Set<PaymentInvoiceMapDTO> invoicesMap = paymentInfo.getInvoicesMap();
-		Iterator iter = invoicesMap.iterator();
+		String invoiceDescription = "FAXTELO-Rechnungsnummer-";
+		List<Integer> invoiceIds = paymentInfo.getInvoiceIds();
+		Iterator iter = invoiceIds.iterator();
 		while (iter.hasNext()) {
-			PaymentInvoiceMapDTO paymentInvoiceMapDto = (PaymentInvoiceMapDTO)(iter.next());
-			InvoiceDTO invoice = paymentInvoiceMapDto.getInvoiceEntity();
-			invoiceDescription = invoiceDescription + invoice.getNumber() + " vom ";
-			invoiceDescription = invoiceDescription + invoice.getCreateDatetime();
+			Integer invoiceId = (Integer)(iter.next());
+			invoiceDescription = invoiceDescription + invoiceId + "-vom-";
+			InvoiceBL invoiceBl = new InvoiceBL(invoiceId);
+			InvoiceDTO invoice = invoiceBl.getEntity();
+			invoiceDescription = invoiceDescription + 
+				invoice.getCreateDatetime().toString().substring(0, 10).trim();
 			//invoiceDescription = invoiceDescription + invoice.getCreateTimestamp();
 			//invoiceDescription = invoiceDescription + invoice.getDueDate();
+			log.debug("invoiceDescription = " + invoiceDescription);
 		}
+		
 		return invoiceDescription;
 }
 
@@ -716,7 +725,7 @@ EFT
 	private int getGenericIntAmount(BigDecimal decimalAmount) {
 		int intAmount = 0;
 		decimalAmount = decimalAmount.multiply(new BigDecimal(100));
-
+		
 		int amountLengthPoint = decimalAmount.toString().lastIndexOf(".");
 		int amountLengthComma = decimalAmount.toString().lastIndexOf(",");
 		MathContext mc = null;
@@ -726,7 +735,7 @@ EFT
 		else {
 			mc = new MathContext(amountLengthComma);
 		}
-		this.amount = decimalAmount.round(mc).intValue();
+		intAmount = decimalAmount.round(mc).intValue();
 		return intAmount;
 	}
 	
