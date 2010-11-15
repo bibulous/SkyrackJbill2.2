@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -881,6 +882,37 @@ public class PaymentBL extends ResultList implements PaymentSQL {
     }
     
     public void save(PaymentDTO paymentDto) {
-    	payment = paymentDas.save(paymentDto);
+    	payment = paymentDas.makePersistent(paymentDto);
     }    
+    
+    public PaymentDTO findById(int id) {
+	    // This will return a list of PaymentDTOs. 
+	    PaymentDTO payment = paymentDas.findNow(id);
+	    return payment;
+    }
+    
+    public PaymentInvoiceMapDTO findInvoiceMapById(int id) {
+	    // This will return a list of PaymentInvoiceMapDTOs. 
+	    PaymentInvoiceMapDTO pimDto = mapDas.findNow(id);
+	    //InvoiceDTO invoice = pimDto.getInvoiceEntity();
+	    //int invoiceId = invoice.getId();
+	    //mapDas.reattach(pimDto);
+	    return pimDto;
+    }
+    
+    public List<PaymentInvoiceMapDTO> 
+		getInvoiceMap(int id) {
+	    // This will return a list of PaymentInvoiceMapDTOs. 
+	    List<PaymentInvoiceMapDTO> pimDtosList = null;
+	    Collection pims = 
+	    	(Collection) mapDas.findNow(id);
+	
+	    if (pims != null) {
+	    	pimDtosList = new ArrayList<PaymentInvoiceMapDTO>(pims); 
+	    } else {
+	    	pimDtosList = new ArrayList<PaymentInvoiceMapDTO>(); // empty
+	    }
+	
+	    return pimDtosList;
+	}
 }

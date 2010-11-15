@@ -72,7 +72,8 @@ public class Context {
         PROCESSORS_DESTINATION,
         PROVISIONING_COMMANDS_DESTINATION,
         PROVISIONING_COMMANDS_REPLY_DESTINATION,
-        INTERNAL_EVENTS_RULES_TASK_CONFIG
+        INTERNAL_EVENTS_RULES_TASK_CONFIG, 
+        MICROPAYMENT_REVERSED_SESSION
     }
     
     private static final Map<Name, String> springBeans = new EnumMap<Name, String>(Name.class);
@@ -95,6 +96,7 @@ public class Context {
         springBeans.put(Name.PROVISIONING_PROCESS_SESSION, 
                 "provisioningProcessSession");
         springBeans.put(Name.WEB_SERVICES_SESSION, "webServicesSession");
+        springBeans.put(Name.MICROPAYMENT_REVERSED_SESSION, "micropaymentReversedSession");
 
         // data access service
         springBeans.put(Name.DESCRIPTION_DAS, "internationalDescriptionDAS");

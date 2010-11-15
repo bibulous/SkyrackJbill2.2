@@ -54,6 +54,7 @@ import com.sapienter.jbilling.server.order.db.OrderDTO;
 import com.sapienter.jbilling.server.order.db.OrderProcessDAS;
 import com.sapienter.jbilling.server.order.db.OrderProcessDTO;
 import com.sapienter.jbilling.server.payment.PaymentBL;
+import com.sapienter.jbilling.server.payment.db.PaymentDTO;
 import com.sapienter.jbilling.server.payment.db.PaymentInvoiceMapDAS;
 import com.sapienter.jbilling.server.payment.db.PaymentInvoiceMapDTO;
 import com.sapienter.jbilling.server.process.db.BillingProcessDTO;
@@ -948,8 +949,14 @@ public class InvoiceBL extends ResultList implements Serializable, InvoiceSQL {
     }
     
 	public void save(InvoiceDTO invoiceDto) {
-		invoice = invoiceDas.save(invoiceDto);		
+		invoice = invoiceDas.makePersistent(invoiceDto);		
 	}       
+	
+    public InvoiceDTO findById(int id) {
+	    // This will return a list of InvoiceDTOs. 
+	    InvoiceDTO invoice = invoiceDas.findNow(id);
+	    return invoice;
+    }
 
     /*
     public static InvoiceWS getWS(InvoiceDTO dto) {

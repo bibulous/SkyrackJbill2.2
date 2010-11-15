@@ -166,7 +166,7 @@ public class PaymentAuthorizationBL {
 	}
     
     public void save(PaymentAuthorizationDTO paDto) {
-    	paymentAuthorization = paymentAuthorizationDas.save(paDto);
+    	paymentAuthorization = paymentAuthorizationDas.makePersistent(paDto);
     }    
     
 }
